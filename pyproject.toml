@@ -46,6 +46,10 @@ packages = ["src/lcpush"]
 testpaths = ["tests"]
 addopts = "-q"
 timeout = 60
+# Tests import shared fixtures via `from tests.conftest import ...`, which needs
+# the repo root importable. `python -m pytest` adds it implicitly; a bare
+# `pytest` (or `uv run pytest`) does not.
+pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["lcpush"]
