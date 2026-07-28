@@ -37,15 +37,20 @@ $ lcpush
 
 ## Install
 
-```bash
-pipx install lcpush
-```
-
-From a checkout:
+Not published to PyPI yet, so install from source:
 
 ```bash
-uv venv && uv pip install -e ".[dev]"
+pipx install git+https://github.com/LarryWg/leetcode-to-github
 ```
+
+Or from a local checkout:
+
+```bash
+pipx install .                        # `lcpush` on your PATH
+uv venv && uv pip install -e ".[dev]" # development, with the test suite
+```
+
+Once it is published, `pipx install lcpush` will be the one-liner.
 
 ## First run
 
