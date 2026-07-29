@@ -3,7 +3,6 @@
 **Push a LeetCode solution to GitHub without leaving your terminal.**
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)
 
 No clone. No working tree. No `cd`. Type `lcpush` from wherever you happen to
@@ -143,38 +142,6 @@ Template variables: `{id}` `{padded_id}` `{title}` `{slug}` `{language}`
 warns once and falls back to the built-in default — a typo in your config
 shouldn't take the tool down.
 
-## Design notes
-
-A few decisions that aren't obvious from the flags, and the reasoning behind
-them:
-
-**The preview shows the first five lines *and* the last three.** Showing only
-the head looks tidier and catches the wrong-clipboard case. But the failure I
-actually hit is a *truncated* paste — half a solution, copied while the page
-was still rendering — and a head-only preview hides that perfectly. The line
-and byte counts are there for the same reason: seeing `2 lines` when you
-expected 25 is the fastest possible signal that something went wrong.
-
-**The clipboard is scored, but never blocked.** Before the source menu is
-drawn, whatever's on your clipboard gets checked for "does this look like a
-solution" — a detectable language, an entry-point shape, more than one line.
-Pass, and `Clipboard` is preselected. Fail, and it's relabelled
-`Clipboard (doesn't look like code)` with `Editor` preselected instead. It's
-still selectable either way. The score decides *ordering*, never permission.
-
-**Warnings never block.** If your code defines `lengthOfLongestSubstring` but
-you picked "Two Sum", you get told — and then you get to push anyway. The
-slug-to-function-name mapping isn't reliable enough to ever be a gate:
-LeetCode's own naming is inconsistent and half the languages use snake_case.
-Same for unbalanced brackets, conflict markers, and TODOs. Only two things are
-hard rejections: empty content, and over 1MB.
-
-**Declining costs one keypress.** Answer `n` to the preview and you land back
-on the source menu, not on your shell prompt. A stale clipboard shouldn't cost
-you the whole session.
-
-**Nothing is reformatted.** CRLF becomes LF, trailing whitespace goes, exactly
-one trailing newline is guaranteed. That's it. Your code arrives byte-for-byte.
 
 ### Field note: LeetCode's pagination lies
 
@@ -197,9 +164,6 @@ pinned to that behaviour, because I'd rather not rediscover it.
 | `clipboard.py` `editor.py` | Solution sources |
 | `detect.py` `plausibility.py` `solution.py` | Language detection, scoring, validation |
 | `render.py` `github.py` `ui.py` | Paths, commit messages, API, terminal output |
-
-Every error path produces one clear line and a non-zero exit code. No stack
-traces, ever — a tool this small has no business showing you a traceback.
 
 ## Development
 
@@ -227,7 +191,3 @@ my mind:
 
 Not planned: LeetCode account auth, scraping your accepted submissions, or any
 host that isn't GitHub.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
