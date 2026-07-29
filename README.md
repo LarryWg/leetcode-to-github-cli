@@ -3,6 +3,7 @@
 **Push a LeetCode solution to GitHub without leaving your terminal.**
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)
 
 No clone. No working tree. No `cd`. Type `lcpush` from wherever you happen to
