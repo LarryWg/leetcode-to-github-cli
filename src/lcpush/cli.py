@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -12,7 +12,7 @@ from . import __version__, tokens, ui
 from .config import Config, SETTABLE_KEYS, load, parse_repo, render_show, save, set_value
 from .errors import Cancelled, ConfigError, LcpushError
 from .onboarding import resolve_token, verify_repo
-from .session import Options, run
+from .session import run
 
 app = typer.Typer(
     add_completion=False,
@@ -32,40 +32,6 @@ def _fail(exc: LcpushError) -> None:
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    repo: Annotated[
-        Optional[str],
-        typer.Option("--repo", help="One-shot owner/name override; not persisted."),
-    ] = None,
-    message: Annotated[
-        Optional[str],
-        typer.Option("-m", "--message", help="Commit message, used verbatim."),
-    ] = None,
-    slug: Annotated[
-        Optional[str], typer.Option("--slug", help="Question slug; skips the picker.")
-    ] = None,
-    question_id: Annotated[
-        Optional[str], typer.Option("--id", help="Question id; skips the picker.")
-    ] = None,
-    lang: Annotated[
-        Optional[str],
-        typer.Option("--lang", help="Language key (e.g. python3); skips detection."),
-    ] = None,
-    use_editor: Annotated[
-        bool, typer.Option("--editor", help="Read the solution from $EDITOR.")
-    ] = False,
-    use_stdin: Annotated[
-        bool, typer.Option("--stdin", help="Read the solution from stdin.")
-    ] = False,
-    no_clipboard: Annotated[
-        bool, typer.Option("--no-clipboard", help="Drop the clipboard source option.")
-    ] = False,
-    force: Annotated[
-        bool,
-        typer.Option("--force", help="Non-interactive: skip the preview and all prompts."),
-    ] = False,
-    no_clobber: Annotated[
-        bool, typer.Option("--no-clobber", help="Abort instead of overwriting.")
-    ] = False,
     refresh: Annotated[
         bool, typer.Option("--refresh", help="Re-fetch the LeetCode problem list.")
     ] = False,
@@ -79,21 +45,8 @@ def main(
     if ctx.invoked_subcommand is not None:
         return
 
-    options = Options(
-        repo=repo,
-        message=message,
-        slug=slug,
-        question_id=question_id,
-        lang=lang,
-        use_editor=use_editor,
-        use_stdin=use_stdin,
-        no_clipboard=no_clipboard,
-        force=force,
-        no_clobber=no_clobber,
-        refresh=refresh,
-    )
     try:
-        code = run(options)
+        code = run(refresh=refresh)
     except Cancelled as exc:
         ui.error(exc.message)
         raise typer.Exit(exc.exit_code) from exc

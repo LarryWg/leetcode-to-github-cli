@@ -68,13 +68,14 @@ def test_verify_repo_returns_the_default_branch():
 
 def test_setup_persists_repo_and_resolved_branch(monkeypatch, capsys):
     monkeypatch.setenv("LCPUSH_GITHUB_TOKEN", "env-token")
+    monkeypatch.setattr(onboarding.prompts, "text", lambda *_a, **_k: "user/solutions")
     monkeypatch.setattr(
         onboarding,
         "verify_repo",
         lambda *_args, **_kwargs: RepoInfo("user/solutions", "trunk", True),
     )
 
-    config, token = onboarding.setup(repo_override="user/solutions", interactive=False)
+    config, token = onboarding.setup()
 
     assert token == "env-token"
     assert config.repo.full_name == "user/solutions"
@@ -95,17 +96,11 @@ def test_setup_prompts_for_the_repo_interactively(monkeypatch):
         "verify_repo",
         lambda *_args, **_kwargs: RepoInfo("user/solutions", "main", True),
     )
-    config, _token = onboarding.setup(Config(), interactive=True)
+    config, _token = onboarding.setup(Config())
     assert config.repo.full_name == "user/solutions"
 
 
-def test_setup_requires_a_repo_interactively(monkeypatch):
+def test_setup_requires_a_repo(monkeypatch):
     monkeypatch.setattr(onboarding.prompts, "text", lambda *_a, **_k: "  ")
     with pytest.raises(ConfigError):
-        onboarding.setup(Config(), interactive=True)
-
-
-def test_setup_non_interactive_without_a_repo():
-    with pytest.raises(ConfigError) as excinfo:
-        onboarding.setup(Config(), interactive=False)
-    assert "--repo" in excinfo.value.message
+        onboarding.setup(Config())

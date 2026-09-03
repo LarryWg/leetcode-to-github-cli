@@ -6,13 +6,12 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
+from lcpush import problems
 from lcpush.errors import LeetCodeError
 from lcpush.paths import problems_cache_file
 from lcpush.problems import (
     Question,
     fetch_all,
-    find_by_id,
-    find_by_slug,
     get_questions,
     is_stale,
     load_cache,
@@ -145,9 +144,41 @@ def test_get_questions_uses_fresh_cache(questions):
     assert get_questions(ttl_days=7, client_factory=factory, now=NOW) == questions
 
 
-def test_get_questions_falls_back_to_stale_cache_with_a_warning(questions):
+def test_get_questions_serves_stale_cache_and_refreshes_in_background(
+    questions, monkeypatch
+):
+    """A stale cache must never block startup on the network."""
     save_cache(questions, now=NOW - timedelta(days=30))
-    warnings = []
+    spawned = []
+    monkeypatch.setattr(
+        problems, "_spawn_refresh", lambda target, factory: spawned.append(target)
+    )
+
+    def factory():  # pragma: no cover - must never be called in the foreground
+        raise AssertionError("stale cache blocked on a foreground fetch")
+
+    result = get_questions(ttl_days=7, client_factory=factory, now=NOW)
+    assert result == questions
+    assert spawned == [problems_cache_file()]
+
+
+def test_background_refresh_rewrites_the_cache(questions):
+    save_cache(questions, now=NOW - timedelta(days=30))
+
+    def factory():
+        def handler(_request):
+            return httpx.Response(200, json=_page(2, 1, 2))
+
+        return _client(handler)
+
+    thread = problems._spawn_refresh(problems_cache_file(), factory)
+    thread.join(timeout=5)
+    _stamp, refreshed = load_cache()
+    assert len(refreshed) == 2
+
+
+def test_background_refresh_failure_keeps_the_stale_cache(questions):
+    save_cache(questions, now=NOW - timedelta(days=30))
 
     def factory():
         def handler(_request):
@@ -155,11 +186,10 @@ def test_get_questions_falls_back_to_stale_cache_with_a_warning(questions):
 
         return _client(handler)
 
-    result = get_questions(
-        ttl_days=7, client_factory=factory, warn=warnings.append, now=NOW
-    )
-    assert result == questions
-    assert warnings and "using cache" in warnings[0]
+    thread = problems._spawn_refresh(problems_cache_file(), factory)
+    thread.join(timeout=5)
+    _stamp, kept = load_cache()
+    assert kept == questions
 
 
 def test_get_questions_without_cache_or_network():
@@ -171,7 +201,37 @@ def test_get_questions_without_cache_or_network():
 
     with pytest.raises(LeetCodeError) as excinfo:
         get_questions(ttl_days=7, client_factory=factory, now=NOW)
-    assert "--slug" in excinfo.value.message
+    assert "no cached problem list" in excinfo.value.message
+
+
+def test_get_questions_first_run_announces_the_fetch():
+    notes = []
+
+    def factory():
+        def handler(_request):
+            return httpx.Response(200, json=_page(2, 1, 2))
+
+        return _client(handler)
+
+    get_questions(ttl_days=7, client_factory=factory, info=notes.append, now=NOW)
+    assert notes and "first run" in notes[0]
+
+
+def test_get_questions_explicit_refresh_falls_back_to_cache_with_a_warning(questions):
+    save_cache(questions, now=NOW)
+    warnings = []
+
+    def factory():
+        def handler(_request):
+            raise httpx.ConnectError("offline")
+
+        return _client(handler)
+
+    result = get_questions(
+        ttl_days=7, refresh=True, client_factory=factory, warn=warnings.append, now=NOW
+    )
+    assert result == questions
+    assert warnings and "using cache" in warnings[0]
 
 
 def test_get_questions_refresh_writes_cache():
@@ -184,14 +244,6 @@ def test_get_questions_refresh_writes_cache():
     result = get_questions(ttl_days=7, refresh=True, client_factory=factory, now=NOW)
     assert len(result) == 2
     assert problems_cache_file().exists()
-
-
-def test_lookups(questions):
-    assert find_by_slug(questions, "TWO-SUM").id == "1"
-    assert find_by_slug(questions, "nope") is None
-    assert find_by_id(questions, "0001").id == "1"
-    assert find_by_id(questions, "167").slug == "two-sum-ii-input-array-is-sorted"
-    assert find_by_id(questions, "9999") is None
 
 
 def test_padded_id_handles_non_numeric():

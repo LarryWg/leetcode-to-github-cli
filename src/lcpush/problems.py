@@ -1,12 +1,15 @@
 """LeetCode problem-set fetch and cache (spec §5.1).
 
-A stale cache always beats a failed run: if the network fetch fails and any
-cache exists, we use it and warn.
+A cache always beats a blocking fetch: a stale cache is served immediately
+while a background thread refreshes it for the next run. Only the very first
+run (no cache at all) or an explicit --refresh waits on the network.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -168,7 +171,10 @@ def save_cache(
             for q in questions
         ],
     }
-    target.write_text(json.dumps(record), encoding="utf-8")
+    # Atomic write: the background refresh must never leave a torn cache
+    scratch = target.with_name(target.name + ".tmp")
+    scratch.write_text(json.dumps(record), encoding="utf-8")
+    os.replace(scratch, target)
     return target
 
 
@@ -217,6 +223,31 @@ def is_stale(
     return current - fetched_at > timedelta(days=ttl_days)
 
 
+def _default_client() -> httpx.Client:
+    return httpx.Client(timeout=20.0)
+
+
+def _spawn_refresh(target: Path, client_factory) -> threading.Thread:
+    """Refresh the cache on a daemon thread so startup never waits on it.
+
+    Failures are silently dropped: the stale cache stays in place and the
+    next run simply tries again.
+    """
+
+    def work() -> None:
+        factory = client_factory or _default_client
+        try:
+            with factory() as client:
+                fresh = fetch_all(client)
+            save_cache(fresh, path=target)
+        except (LeetCodeError, httpx.HTTPError, OSError):
+            pass
+
+    thread = threading.Thread(target=work, daemon=True, name="lcpush-cache-refresh")
+    thread.start()
+    return thread
+
+
 def get_questions(
     *,
     ttl_days: int = 7,
@@ -224,15 +255,22 @@ def get_questions(
     path: Path | None = None,
     client_factory=None,
     warn=lambda message: None,
+    info=lambda message: None,
     now: datetime | None = None,
 ) -> tuple[Question, ...]:
-    """Cached problem set, refreshing when stale or when `refresh` is set."""
+    """Cached problem set. A stale cache is served immediately and refreshed
+    in the background; only a missing cache or `refresh` blocks on the fetch.
+    """
     target = path or problems_cache_file()
     fetched_at, cached = load_cache(target)
-    if cached and not refresh and not is_stale(fetched_at, ttl_days, now=now):
+    if cached and not refresh:
+        if is_stale(fetched_at, ttl_days, now=now):
+            _spawn_refresh(target, client_factory)
         return cached
 
-    factory = client_factory or (lambda: httpx.Client(timeout=20.0))
+    if not cached:
+        info("Fetching the LeetCode problem list (first run only, ~30s)...")
+    factory = client_factory or _default_client
     try:
         with factory() as client:
             fresh = fetch_all(client)
@@ -241,23 +279,8 @@ def get_questions(
             warn(f"Could not refresh the LeetCode problem list ({exc}); using cache.")
             return cached
         raise LeetCodeError(
-            "Could not reach LeetCode and no cached problem list. Retry, or use --slug."
+            "Could not reach LeetCode and no cached problem list. "
+            "Check your connection and retry."
         ) from exc
     save_cache(fresh, path=target, now=now)
     return fresh
-
-
-def find_by_slug(questions: tuple[Question, ...], slug: str) -> Question | None:
-    wanted = slug.strip().lower()
-    for question in questions:
-        if question.slug.lower() == wanted:
-            return question
-    return None
-
-
-def find_by_id(questions: tuple[Question, ...], qid: str) -> Question | None:
-    wanted = qid.strip().lstrip("0") or "0"
-    for question in questions:
-        if question.id == qid.strip() or question.id.lstrip("0") == wanted:
-            return question
-    return None

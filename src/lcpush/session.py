@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 import questionary
 
 from . import clipboard, editor, onboarding, prompts, tokens, ui
-from .config import Config, load, parse_repo
-from .detect import Detection, Language, detect, resolve_language, LANGUAGES
-from .errors import Cancelled, ConfigError, InputError, LcpushError
+from .config import Config, load
+from .detect import Detection, Language, detect, resolve_language
+from .errors import Cancelled, InputError
 from .github import GitHubClient
 from .picker import pick
 from .plausibility import assess
-from .problems import Question, find_by_id, find_by_slug, get_questions
+from .problems import Question, get_questions
 from .render import (
     clean_message,
     filename as render_filename,
@@ -27,23 +27,6 @@ from .solution import line_count, normalize, reject_reason, soft_warnings
 
 
 @dataclass(frozen=True)
-class Options:
-    """Every CLI flag that affects a push, in one immutable bundle."""
-
-    repo: str | None = None
-    message: str | None = None
-    slug: str | None = None
-    question_id: str | None = None
-    lang: str | None = None
-    use_editor: bool = False
-    use_stdin: bool = False
-    no_clipboard: bool = False
-    force: bool = False
-    no_clobber: bool = False
-    refresh: bool = False
-
-
-@dataclass(frozen=True)
 class SolutionInput:
     text: str
     source_label: str
@@ -53,61 +36,26 @@ class SolutionInput:
 # -- configuration ---------------------------------------------------------
 
 
-def load_config(options: Options, *, interactive: bool) -> tuple[Config, str]:
+def load_config() -> tuple[Config, str]:
     """Return (config, token), running first-run setup when needed."""
     config = load()
     if config is None or not config.repo.configured:
-        config, token = onboarding.setup(
-            config, repo_override=options.repo, interactive=interactive
-        )
-        return config, token
-
-    if options.repo:  # one-shot override, never persisted
-        owner, name = parse_repo(options.repo)
-        config = replace(config, repo=replace(config.repo, owner=owner, name=name))
-    token = onboarding.resolve_token(interactive=interactive)
+        return onboarding.setup(config)
+    token = onboarding.resolve_token(interactive=True)
     return config, token
 
 
 # -- question selection ----------------------------------------------------
 
 
-def _synthesize(slug: str, question_id: str) -> Question:
-    title = " ".join(part.capitalize() for part in slug.split("-") if part)
-    return Question(id=question_id, title=title, slug=slug, difficulty="Unknown")
-
-
-def choose_question(config: Config, options: Options) -> Question:
-    """Resolve the question from --slug/--id, else run the fuzzy picker."""
-    try:
-        questions = get_questions(
-            ttl_days=config.cache.problems_ttl_days,
-            refresh=options.refresh,
-            warn=lambda message: ui.dim(f"  {message}"),
-        )
-    except LcpushError:
-        if options.slug and options.question_id:
-            return _synthesize(options.slug, options.question_id)
-        raise
-
-    if options.slug:
-        found = find_by_slug(questions, options.slug)
-        if found is None:
-            if options.question_id:
-                return _synthesize(options.slug, options.question_id)
-            raise ConfigError(
-                f"No problem with slug '{options.slug}'. Try lcpush --refresh."
-            )
-        return found
-
-    if options.question_id:
-        found = find_by_id(questions, options.question_id)
-        if found is None:
-            raise ConfigError(
-                f"No problem with id '{options.question_id}'. Try lcpush --refresh."
-            )
-        return found
-
+def choose_question(config: Config, *, refresh: bool = False) -> Question:
+    """Run the fuzzy picker over the cached problem set."""
+    questions = get_questions(
+        ttl_days=config.cache.problems_ttl_days,
+        refresh=refresh,
+        warn=lambda message: ui.dim(f"  {message}"),
+        info=lambda message: ui.dim(f"  {message}"),
+    )
     question = pick(build_index(questions))
     ui.success(question.display)
     return question
@@ -116,10 +64,10 @@ def choose_question(config: Config, options: Options) -> Question:
 # -- solution input --------------------------------------------------------
 
 
-def _source_choices(options: Options) -> tuple[list, str]:
+def _source_choices() -> tuple[list, str]:
     """Menu entries plus the preselected value, ordered by plausibility (§6.2)."""
     entries: list = []
-    clip_text = None if options.no_clipboard else clipboard.read()
+    clip_text = clipboard.read()
     plausible = assess(clip_text) if clip_text else None
     default = "editor"
 
@@ -154,46 +102,27 @@ def _read_source(source: str) -> tuple[str, str]:
     return editor.read_stdin(), "Stdin"
 
 
-def read_solution(
-    options: Options, question: Question, *, interactive: bool
-) -> SolutionInput:
+def read_solution(question: Question) -> SolutionInput:
     """Read, validate, preview and confirm a solution (spec §6).
 
     Declining the preview returns to the source menu rather than exiting, so a
     stale clipboard costs one keypress.
     """
-    forced_source = None
-    if options.use_stdin or not sys.stdin.isatty():
-        forced_source = "stdin"
-    elif options.use_editor:
-        forced_source = "editor"
-    elif not interactive:
-        # --force from a terminal must still be promptless: prefer a non-empty
-        # clipboard, otherwise fall back to reading stdin.
-        usable_clipboard = not options.no_clipboard and clipboard.read() is not None
-        forced_source = "clipboard" if usable_clipboard else "stdin"
-
     while True:
-        if forced_source:
-            source = forced_source
+        entries, default = _source_choices()
+        source = prompts.select("? Solution source:", entries, default=default)
+        try:
             raw, label = _read_source(source)
-        else:
-            entries, default = _source_choices(options)
-            source = prompts.select("? Solution source:", entries, default=default)
-            try:
-                raw, label = _read_source(source)
-            except InputError as exc:
-                # A clipboard that emptied since the menu was drawn is worth a
-                # retry; an empty editor buffer is an explicit abort (§9).
-                if source != "clipboard":
-                    raise
-                ui.warn(f"⚠ {exc.message}")
-                continue
+        except InputError as exc:
+            # A clipboard that emptied since the menu was drawn is worth a
+            # retry; an empty editor buffer is an explicit abort (§9).
+            if source != "clipboard":
+                raise
+            ui.warn(f"⚠ {exc.message}")
+            continue
 
         problem = reject_reason(raw)
         if problem:
-            if not interactive or forced_source == "stdin":
-                raise InputError(problem)
             ui.warn(f"⚠ {problem}")
             continue
 
@@ -204,44 +133,20 @@ def read_solution(
         warnings = soft_warnings(
             text, detection=detection, slug=question.slug, title=question.title
         )
-        if not interactive:
-            for message in warnings:
-                ui.warn(message)
-            return SolutionInput(text, label, detection)
-
         ui.info("")
         ui.info(ui.render_preview(label, text, detection.label))
         for message in warnings:
             ui.warn(message)
         if prompts.confirm("  └ Use this?", default=True):
             return SolutionInput(text, label, detection)
-
-        if forced_source:
-            forced_source = None  # fall back to the menu instead of exiting
         ui.info("")
 
 
 # -- language --------------------------------------------------------------
 
 
-def choose_language(
-    solution: SolutionInput, options: Options, *, interactive: bool
-) -> Language:
-    if options.lang:
-        language = resolve_language(options.lang)
-        if language is None:
-            known = ", ".join(lang.key for lang in LANGUAGES)
-            raise ConfigError(f"Unknown language '{options.lang}'. Known: {known}")
-        return language
-
+def choose_language(solution: SolutionInput) -> Language:
     detection = solution.detection
-    if not interactive:
-        if detection.language is None:
-            raise InputError(
-                "Could not identify the language. Re-run with --lang <language>."
-            )
-        return detection.language
-
     entries = [
         questionary.Choice(
             title=f"{language.label}  (detected)"
@@ -265,18 +170,10 @@ def build_message(
     question: Question,
     language: Language,
     config: Config,
-    options: Options,
     *,
     lines: int,
     updating: bool,
-    interactive: bool,
 ) -> str:
-    if options.message:
-        message = clean_message(options.message)
-        if not message:
-            raise ConfigError("Commit message from -m is empty.")
-        return message
-
     rendered = render_message(
         question,
         language,
@@ -290,7 +187,7 @@ def build_message(
         ui.warn(rendered.warning)
     message = rendered.text
 
-    if interactive and config.commit.prompt == "always":
+    if config.commit.prompt == "always":
         message = edit_message(message)
     return message
 
@@ -364,9 +261,6 @@ def push(
     question: Question,
     language: Language,
     solution: SolutionInput,
-    options: Options,
-    *,
-    interactive: bool,
 ) -> str:
     """Resolve add-vs-overwrite, confirm, and PUT the file. Returns the URL."""
     path = target_path(config.repo.path, question, language)
@@ -378,31 +272,19 @@ def push(
             config.repo.owner, config.repo.name, path, config.repo.branch
         )
         updating = sha is not None
-        if updating and options.no_clobber:
-            raise ConfigError(
-                f"{path} already exists in {config.repo.full_name} and --no-clobber is set."
-            )
 
         message = build_message(
-            question,
-            language,
-            config,
-            options,
-            lines=lines,
-            updating=updating,
-            interactive=interactive,
+            question, language, config, lines=lines, updating=updating
         )
-        if interactive:
-            # With -m the panel confirms the push but offers no message editing.
-            message = confirm_push(
-                path=name,
-                lines=lines,
-                repo=config.repo.full_name,
-                branch=config.repo.branch,
-                message=message,
-                updating=updating,
-                prompt_mode="never" if options.message else config.commit.prompt,
-            )
+        message = confirm_push(
+            path=name,
+            lines=lines,
+            repo=config.repo.full_name,
+            branch=config.repo.branch,
+            message=message,
+            updating=updating,
+            prompt_mode=config.commit.prompt,
+        )
 
         ui.info("")
         ui.arrow(
@@ -422,23 +304,15 @@ def push(
     return result.html_url
 
 
-def run(options: Options) -> int:
+def run(*, refresh: bool = False) -> int:
     """Entry point for a full push. Returns a process exit code."""
-    piped = not sys.stdin.isatty()
-    if piped and not options.force:
-        raise InputError(
-            "Non-interactive input requires --force, because the preview guard "
-            "cannot run. Example: cat sol.py | lcpush --slug two-sum "
-            "--lang python3 --force"
-        )
-    interactive = not options.force and not piped
+    if not sys.stdin.isatty():
+        raise InputError("lcpush is interactive and needs a terminal.")
 
-    config, token = load_config(options, interactive=interactive)
-    question = choose_question(config, options)
-    solution = read_solution(options, question, interactive=interactive)
-    language = choose_language(solution, options, interactive=interactive)
-    url = push(
-        config, token, question, language, solution, options, interactive=interactive
-    )
+    config, token = load_config()
+    question = choose_question(config, refresh=refresh)
+    solution = read_solution(question)
+    language = choose_language(solution)
+    url = push(config, token, question, language, solution)
     ui.success(tokens.redact(url, token))
     return 0

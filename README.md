@@ -97,28 +97,15 @@ is available it falls back to a `0600` file and tells you it did.
 ## Usage
 
 ```bash
-lcpush                                     # the full interactive session
-lcpush --slug two-sum                      # skip the picker
-lcpush --id 1                              # skip the picker
-lcpush --lang python3                      # skip language detection
-lcpush -m "Solve Two Sum with a hash map"  # commit message, used verbatim
-lcpush --repo owner/other-repo             # one-shot override, not persisted
-lcpush --editor                            # write the solution in $EDITOR
-lcpush --stdin                             # read the solution from stdin
-lcpush --no-clipboard                      # drop the clipboard source
-lcpush --no-clobber                        # abort instead of overwriting
-lcpush --refresh                           # re-fetch the problem list
+lcpush             # the full interactive session
+lcpush --refresh   # force a re-fetch of the problem list
 ```
 
-Scriptable, with zero prompts:
-
-```bash
-cat sol.py | lcpush --slug two-sum --lang python3 --force
-```
-
-`--force` is mandatory for non-interactive runs. That's deliberate — it skips
-the preview, and skipping the preview should be something you asked for out
-loud rather than something that happens because stdin wasn't a terminal.
+That's the whole surface. `lcpush` is deliberately interactive-only: one
+command, three prompts, done. The problem list is cached locally, so the
+picker opens instantly - when the cache goes stale it is refreshed in the
+background while you type, never while you wait. Only the very first run
+(no cache yet) fetches in the foreground.
 
 ### Configuration
 
@@ -171,7 +158,7 @@ pinned to that behaviour, because I'd rather not rediscover it.
 ```bash
 uv venv
 uv pip install -e ".[dev]"
-uv run pytest                    # 240 tests
+uv run pytest                    # 224 tests
 uv run pytest --cov=lcpush       # ~94% coverage
 ```
 

@@ -50,30 +50,17 @@ def verify_repo(token: str, owner: str, name: str, *, client: httpx.Client | Non
     return info
 
 
-def setup(
-    existing: Config | None = None,
-    *,
-    repo_override: str | None = None,
-    interactive: bool = True,
-) -> tuple[Config, str]:
+def setup(existing: Config | None = None) -> tuple[Config, str]:
     """Run the first-run flow and return the saved config plus the token."""
     config = existing or Config()
 
-    if repo_override:
-        owner, name = parse_repo(repo_override)
-    elif interactive:
-        ui.info("")
-        answer = prompts.text("? GitHub repo to push to:", default="").strip()
-        if not answer:
-            raise ConfigError("A target repo is required.")
-        owner, name = parse_repo(answer)
-    else:
-        raise ConfigError(
-            "No repo configured. Run lcpush once interactively, or pass "
-            "--repo owner/name."
-        )
+    ui.info("")
+    answer = prompts.text("? GitHub repo to push to:", default="").strip()
+    if not answer:
+        raise ConfigError("A target repo is required.")
+    owner, name = parse_repo(answer)
 
-    token = resolve_token(interactive=interactive, announce=True)
+    token = resolve_token(interactive=True, announce=True)
     info = verify_repo(token, owner, name)
     ui.success(f"Verified write access to {owner}/{name}")
 
