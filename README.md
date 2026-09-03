@@ -2,7 +2,7 @@
 
 **Push a LeetCode solution to GitHub without leaving your terminal.**
 
-![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![C++](https://img.shields.io/badge/C%2B%2B-20-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)
 
@@ -62,20 +62,15 @@ $ lcpush
 
 ## Install
 
-Not on PyPI yet, so install from source:
+Build from source with CMake (3.24+), a C++20 compiler, and libcurl
+(preinstalled on macOS, `libcurl4-openssl-dev` or similar on Linux). All other
+dependencies are pinned and fetched at configure time.
 
 ```bash
-pipx install git+https://github.com/LarryWg/leetcode-to-github
+cmake -S . -B build -G Ninja
+cmake --build build
+cmake --install build       # puts `lcpush` on your PATH (may need sudo)
 ```
-
-Or from a local checkout:
-
-```bash
-pipx install .                          # puts `lcpush` on your PATH
-uv venv && uv pip install -e ".[dev]"   # development, with the test suite
-```
-
-Requires Python 3.11+.
 
 ## First run
 
@@ -90,9 +85,10 @@ That's the only time you'll be asked. Every run after this goes straight to the
 question picker.
 
 The token needs the **`repo`** scope (classic) or **`contents: read & write`**
-(fine-grained). It's stored in your OS keyring — macOS Keychain, libsecret, or
-Windows Credential Manager — and never written to `config.toml`. If no keyring
-is available it falls back to a `0600` file and tells you it did.
+(fine-grained). It's stored in the macOS
+Keychain and never written to `config.toml`. On other platforms (no keyring
+backend yet) it falls back to `$GITHUB_TOKEN`, `gh auth token`, or a `0600`
+file, and tells you which.
 
 ## Usage
 
@@ -144,27 +140,30 @@ pinned to that behaviour, because I'd rather not rediscover it.
 
 | Module | Responsibility |
 |---|---|
-| `cli.py` | Typer flags, `config` subcommands, top-level error handling |
-| `session.py` | The run flow, question to push |
-| `onboarding.py` | First-run setup, token resolution |
-| `config.py` `paths.py` `tokens.py` | Persistence, XDG paths, keyring |
-| `problems.py` `search.py` `picker.py` | Problem set, offline fuzzy match, picker UI |
-| `clipboard.py` `editor.py` | Solution sources |
-| `detect.py` `plausibility.py` `solution.py` | Language detection, scoring, validation |
-| `render.py` `github.py` `ui.py` | Paths, commit messages, API, terminal output |
+| `cli.cpp` | CLI11 flags, `config` subcommands, top-level error handling |
+| `session.cpp` | The run flow, question to push |
+| `onboarding.cpp` | First-run setup, token resolution |
+| `config.cpp` `paths.cpp` `tokens.cpp` `keyring_*.cpp` | Persistence, XDG paths, keyring |
+| `problems.cpp` `search.cpp` `picker.cpp` | Problem set, offline fuzzy match, picker UI |
+| `clipboard.cpp` `editor.cpp` | Solution sources |
+| `detect.cpp` `plausibility.cpp` `solution.cpp` | Language detection, scoring, validation |
+| `render.cpp` `github.cpp` `ui.cpp` | Paths, commit messages, API, terminal output |
+| `term/` `http/` `util/` | Raw mode + key decoding, libcurl transport, helpers |
 
 ## Development
 
 ```bash
-uv venv
-uv pip install -e ".[dev]"
-uv run pytest                    # 224 tests
-uv run pytest --cov=lcpush       # ~94% coverage
+cmake -S . -B build -G Ninja
+cmake --build build
+ctest --test-dir build           # 200+ tests
 ```
 
-The prompt widgets are tested for real, driven through a `prompt_toolkit` pipe
-input rather than mocked out — so "typing `two su` filters to Two Sum" and
+The prompt widgets are tested for real, driven through scripted key bytes
+rather than mocked out - so "typing `two su` filters to Two Sum" and
 "Ctrl-U clears the pre-filled commit message" are assertions, not hopes.
+`tests/data/parity.json` holds vectors generated from the original Python
+implementation, and a replay suite pins the C++ fuzzy-search ranking,
+language-detection scores, and clipboard plausibility to them exactly.
 
 ## Not doing (yet)
 
