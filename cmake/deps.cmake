@@ -14,19 +14,19 @@ FetchContent_Declare(
 FetchContent_Declare(
   tomlplusplus
   GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
-  GIT_TAG v3.4.0
+  GIT_TAG 30172438cee64926dc41fdd9c11fb3ba5b2ba9de
 )
 
 FetchContent_Declare(
   rapidfuzz
   GIT_REPOSITORY https://github.com/rapidfuzz/rapidfuzz-cpp.git
-  GIT_TAG v3.3.4
+  GIT_TAG 82662f3623b3ca3645e543f677fc32fb8bd1fb95
 )
 
 FetchContent_Declare(
   CLI11
   GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-  GIT_TAG v2.5.0
+  GIT_TAG 4160d259d961cd393fd8d67590a8c7d210207348
 )
 
 FetchContent_MakeAvailable(nlohmann_json tomlplusplus rapidfuzz CLI11)
@@ -35,7 +35,7 @@ if(LCPUSH_BUILD_TESTS)
   FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.10.0
+    GIT_TAG 25319fd3047c6bdcf3c0170e76fa526c77f99ca9
   )
   FetchContent_MakeAvailable(Catch2)
   list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

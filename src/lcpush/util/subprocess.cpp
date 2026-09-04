@@ -129,6 +129,7 @@ class RealSubprocess final : public Subprocess {
 
   private:
     static void exec_argv(const std::vector<std::string>& argv) {
+        if (argv.empty()) ::_exit(127);
         std::vector<char*> args;
         args.reserve(argv.size() + 1);
         for (const std::string& arg : argv) args.push_back(const_cast<char*>(arg.c_str()));

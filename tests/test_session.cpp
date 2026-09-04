@@ -282,7 +282,7 @@ TEST_CASE("overwrite is confirmed by the panel alone") {
     CHECK(fixture.recorder.confirms.empty());
 }
 
-TEST_CASE("commit prompt never hides the edit keys") {
+TEST_CASE("commit prompt never mode hides the edit keys") {
     Interactive fixture;
     config::save(config::set_value(
         config::set_value(config::Config{}, "repo", "user/leetcode-solutions"),

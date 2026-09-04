@@ -1,0 +1,55 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Development",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "LCPUSH_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "strict",
+      "inherits": "dev",
+      "displayName": "Strict warnings",
+      "binaryDir": "${sourceDir}/build/strict",
+      "cacheVariables": {
+        "LCPUSH_STRICT": "ON"
+      }
+    },
+    {
+      "name": "sanitizers",
+      "inherits": "strict",
+      "displayName": "Address and undefined behavior sanitizers",
+      "binaryDir": "${sourceDir}/build/sanitizers",
+      "cacheVariables": {
+        "LCPUSH_SANITIZERS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "strict", "configurePreset": "strict" },
+    { "name": "sanitizers", "configurePreset": "sanitizers" }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "strict",
+      "configurePreset": "strict",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "sanitizers",
+      "configurePreset": "sanitizers",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

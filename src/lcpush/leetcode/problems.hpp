@@ -97,8 +97,8 @@ struct GetQuestionsOptions {
 };
 
 // Cached problem set. A stale cache is served immediately and refreshed in
-// the background (the handle lands in refresh_out when provided); only a
-// missing cache or refresh=true blocks on the fetch.
+// the background when refresh_out is provided. Only a missing cache or
+// refresh=true blocks on the fetch.
 std::vector<Question> get_questions(const GetQuestionsOptions& options = {},
                                     RefreshHandle* refresh_out = nullptr);
 

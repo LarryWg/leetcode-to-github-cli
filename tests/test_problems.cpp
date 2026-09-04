@@ -7,6 +7,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 #include "helpers/fake_transport.hpp"
 #include "helpers/fixtures.hpp"
@@ -129,6 +130,37 @@ TEST_CASE("cache round trip") {
     CHECK(record["fetched_at"] == "2026-07-27T10:00:00Z");
 }
 
+TEST_CASE("concurrent cache writes remain valid") {
+    IsolatedDirs dirs;
+    auto target = paths::problems_cache_file();
+    auto first = testing::questions();
+    auto second = first;
+    second[0].title = "Concurrent value";
+    std::exception_ptr failure_one;
+    std::exception_ptr failure_two;
+
+    auto writer = [&](const std::vector<Question>& questions, std::exception_ptr& failure) {
+        try {
+            for (int i = 0; i < 25; ++i) {
+                problems::save_cache(questions, target, kNow + i);
+            }
+        } catch (...) {
+            failure = std::current_exception();
+        }
+    };
+    std::thread one(writer, std::cref(first), std::ref(failure_one));
+    std::thread two(writer, std::cref(second), std::ref(failure_two));
+    one.join();
+    two.join();
+
+    CHECK_FALSE(failure_one);
+    CHECK_FALSE(failure_two);
+    CHECK(problems::load_cache(target).questions.size() == first.size());
+    for (const auto& entry : std::filesystem::directory_iterator(target.parent_path())) {
+        CHECK(entry.path().filename().string().find(".tmp.") == std::string::npos);
+    }
+}
+
 TEST_CASE("load cache missing and corrupt") {
     IsolatedDirs dirs;
     auto missing = problems::load_cache();
@@ -183,6 +215,23 @@ TEST_CASE("get questions serves stale cache and refreshes in background") {
     CHECK(refresh.active());
     refresh.join();
     CHECK(problems::load_cache().questions.size() == 2);
+}
+
+TEST_CASE("stale cache without a refresh owner does not block on network") {
+    IsolatedDirs dirs;
+    auto questions = testing::questions();
+    problems::save_cache(questions, kNow - 30 * kDay);
+    bool network_used = false;
+    auto result = problems::get_questions(
+        {.ttl_days = 7,
+         .transport_factory = [&network_used]() -> std::unique_ptr<http::HttpTransport> {
+             network_used = true;
+             return std::make_unique<testing::FakeTransport>(
+                 [](const http::Request&) { return json_response(200, page(2, 1, 2).dump()); });
+         },
+         .now = kNow});
+    CHECK(result == questions);
+    CHECK_FALSE(network_used);
 }
 
 TEST_CASE("background refresh failure keeps the stale cache") {

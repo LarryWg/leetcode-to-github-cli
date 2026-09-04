@@ -172,9 +172,10 @@ std::string base64_encode(std::string_view data) {
     out.reserve(((data.size() + 2) / 3) * 4);
     size_t i = 0;
     while (i + 3 <= data.size()) {
-        uint32_t chunk = (static_cast<unsigned char>(data[i]) << 16) |
-                         (static_cast<unsigned char>(data[i + 1]) << 8) |
-                         static_cast<unsigned char>(data[i + 2]);
+        uint32_t chunk = (static_cast<uint32_t>(static_cast<unsigned char>(data[i])) << 16) |
+                         (static_cast<uint32_t>(static_cast<unsigned char>(data[i + 1]))
+                          << 8) |
+                         static_cast<uint32_t>(static_cast<unsigned char>(data[i + 2]));
         out.push_back(table[(chunk >> 18) & 0x3f]);
         out.push_back(table[(chunk >> 12) & 0x3f]);
         out.push_back(table[(chunk >> 6) & 0x3f]);
@@ -183,13 +184,15 @@ std::string base64_encode(std::string_view data) {
     }
     size_t rest = data.size() - i;
     if (rest == 1) {
-        uint32_t chunk = static_cast<unsigned char>(data[i]) << 16;
+        uint32_t chunk =
+            static_cast<uint32_t>(static_cast<unsigned char>(data[i])) << 16;
         out.push_back(table[(chunk >> 18) & 0x3f]);
         out.push_back(table[(chunk >> 12) & 0x3f]);
         out.append("==");
     } else if (rest == 2) {
-        uint32_t chunk = (static_cast<unsigned char>(data[i]) << 16) |
-                         (static_cast<unsigned char>(data[i + 1]) << 8);
+        uint32_t chunk = (static_cast<uint32_t>(static_cast<unsigned char>(data[i])) << 16) |
+                         (static_cast<uint32_t>(static_cast<unsigned char>(data[i + 1]))
+                          << 8);
         out.push_back(table[(chunk >> 18) & 0x3f]);
         out.push_back(table[(chunk >> 12) & 0x3f]);
         out.push_back(table[(chunk >> 6) & 0x3f]);
@@ -202,10 +205,31 @@ std::string url_quote_path(std::string_view path) {
     static const char hex[] = "0123456789ABCDEF";
     std::string out;
     out.reserve(path.size());
-    for (unsigned char c : path) {
+    for (char raw : path) {
+        unsigned char c = static_cast<unsigned char>(raw);
         bool unreserved = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
                           (c >= '0' && c <= '9') || c == '_' || c == '.' || c == '-' ||
                           c == '~' || c == '/';
+        if (unreserved) {
+            out.push_back(static_cast<char>(c));
+        } else {
+            out.push_back('%');
+            out.push_back(hex[c >> 4]);
+            out.push_back(hex[c & 0x0f]);
+        }
+    }
+    return out;
+}
+
+std::string url_quote_query(std::string_view value) {
+    static const char hex[] = "0123456789ABCDEF";
+    std::string out;
+    out.reserve(value.size());
+    for (char raw : value) {
+        unsigned char c = static_cast<unsigned char>(raw);
+        bool unreserved = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                          (c >= '0' && c <= '9') || c == '_' || c == '.' || c == '-' ||
+                          c == '~';
         if (unreserved) {
             out.push_back(static_cast<char>(c));
         } else {
