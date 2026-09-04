@@ -131,6 +131,19 @@ TEST_CASE("put new file sends base64 and no sha") {
     CHECK(result.html_url.ends_with("x.py"));
 }
 
+TEST_CASE("put file rejects a malformed success response") {
+    auto github = client_for([](const http::Request&) {
+        return json_response(201, json({{"content", json::object()},
+                                        {"commit", json::object()}}).dump());
+    });
+    CHECK_THROWS_MATCHES(
+        github.put_file("user", "solutions", "p.py",
+                        {.content = "x\n", .message = "m", .branch = "main"}),
+        GitHubError,
+        Catch::Matchers::MessageMatches(
+            Catch::Matchers::ContainsSubstring("malformed success response")));
+}
+
 TEST_CASE("put existing file includes sha and author") {
     json captured;
     auto github = client_for([&captured](const http::Request& request) {
@@ -219,4 +232,14 @@ TEST_CASE("paths are url encoded") {
     });
     github.get_file_sha("user", "solutions", "sub dir/0001-two-sum.py", "main");
     CHECK(seen.find("sub%20dir/0001-two-sum.py") != std::string::npos);
+}
+
+TEST_CASE("branch query values are url encoded") {
+    std::string seen;
+    auto github = client_for([&seen](const http::Request& request) {
+        seen = request.url;
+        return json_response(404, json({{"message", "Not Found"}}).dump());
+    });
+    github.get_file_sha("user", "solutions", "solution.py", "feature/a+b #1");
+    CHECK(seen.find("?ref=feature%2Fa%2Bb%20%231") != std::string::npos);
 }

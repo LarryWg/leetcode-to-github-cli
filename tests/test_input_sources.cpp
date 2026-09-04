@@ -66,6 +66,18 @@ TEST_CASE("open editor returns written content") {
     CHECK(result->find("Paste your solution") == std::string::npos);
 }
 
+TEST_CASE("open editor rejects content from a failed editor") {
+    EnvVar editor_var("EDITOR", "fake");
+    FakeSubprocess proc;
+    proc.on_run_interactive = [](const std::vector<std::string>& command) {
+        std::ofstream out(command.back());
+        out << editor::kSolutionHeader << "partial content\n";
+        return std::optional<int>{1};
+    };
+    util::SubprocessOverride subprocess_override(&proc);
+    CHECK_FALSE(editor::open_editor().has_value());
+}
+
 TEST_CASE("open editor returns none for empty buffer") {
     EnvVar editor_var("EDITOR", "fake");
     FakeSubprocess proc;

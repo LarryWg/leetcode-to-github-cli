@@ -89,7 +89,8 @@ Config from_table(const toml::table& data) {
 // TOML basic-string escaping matching tomli_w output.
 std::string quoted(const std::string& text) {
     std::string out = "\"";
-    for (unsigned char c : text) {
+    for (char raw : text) {
+        unsigned char c = static_cast<unsigned char>(raw);
         switch (c) {
             case '\\': out += "\\\\"; break;
             case '"': out += "\\\""; break;

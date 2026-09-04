@@ -3,9 +3,12 @@
 #include <nlohmann/json.hpp>
 
 #include <chrono>
+#include <cerrno>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <thread>
+#include <unistd.h>
 
 #include "lcpush/core/errors.hpp"
 #include "lcpush/http/curl_transport.hpp"
@@ -185,18 +188,36 @@ std::filesystem::path save_cache(const std::vector<Question>& questions,
     }
     record["questions"] = std::move(list);
 
-    // Atomic write: the background refresh must never leave a torn cache.
-    std::filesystem::path scratch = path;
-    scratch += ".tmp";
-    {
-        std::ofstream out(scratch);
-        out << record.dump();
-        if (!out.good()) {
+    std::string serialized = record.dump();
+    std::string pattern = (path.parent_path() / (path.filename().string() + ".tmp.XXXXXX"))
+                              .string();
+    std::vector<char> buffer(pattern.begin(), pattern.end());
+    buffer.push_back('\0');
+    int fd = ::mkstemp(buffer.data());
+    if (fd < 0) {
+        throw LeetCodeError("Could not write the problems cache at " + path.string());
+    }
+    std::filesystem::path scratch(buffer.data());
+    size_t written = 0;
+    while (written < serialized.size()) {
+        ssize_t n = ::write(fd, serialized.data() + written, serialized.size() - written);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            ::close(fd);
+            ::unlink(scratch.c_str());
             throw LeetCodeError("Could not write the problems cache at " + path.string());
         }
+        written += static_cast<size_t>(n);
+    }
+    bool flush_failed = ::fsync(fd) != 0;
+    bool close_failed = ::close(fd) != 0;
+    if (flush_failed || close_failed) {
+        ::unlink(scratch.c_str());
+        throw LeetCodeError("Could not write the problems cache at " + path.string());
     }
     std::filesystem::rename(scratch, path, ec);
     if (ec) {
+        ::unlink(scratch.c_str());
         throw LeetCodeError("Could not write the problems cache at " + path.string());
     }
     return path;
@@ -271,11 +292,9 @@ std::vector<Question> get_questions(const GetQuestionsOptions& options,
         options.path ? *options.path : paths::problems_cache_file();
     CacheContent cached = load_cache(target);
     if (!cached.questions.empty() && !options.refresh) {
-        if (is_stale(cached.fetched_at, options.ttl_days, options.now)) {
-            RefreshHandle handle = spawn_refresh(target, options.transport_factory);
-            if (refresh_out != nullptr) {
-                *refresh_out = std::move(handle);
-            }
+        if (refresh_out != nullptr &&
+            is_stale(cached.fetched_at, options.ttl_days, options.now)) {
+            *refresh_out = spawn_refresh(target, options.transport_factory);
         }
         return cached.questions;
     }

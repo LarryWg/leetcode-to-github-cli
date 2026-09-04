@@ -44,7 +44,8 @@ RowParts row_parts(const Question& question, int width, bool selected) {
     }
     long padding = std::max(1L, room - left_len);
     RowParts parts;
-    parts.left = (selected ? "  ❯ " : "    ") + left + std::string(padding, ' ');
+    parts.left = (selected ? "  ❯ " : "    ") + left +
+                 std::string(static_cast<size_t>(padding), ' ');
     parts.tag = tag + lock;
     return parts;
 }

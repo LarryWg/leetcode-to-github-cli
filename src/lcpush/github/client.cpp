@@ -138,7 +138,8 @@ std::optional<std::string> GitHubClient::get_file_sha(const std::string& owner,
                                                       const std::string& branch) {
     std::string repo = owner + "/" + name;
     auto response = request("GET", "/repos/" + owner + "/" + name + "/contents/" +
-                                        encode_path(path) + "?ref=" + branch);
+                                        encode_path(path) + "?ref=" +
+                                        util::url_quote_query(branch));
     if (response.status == 404) return std::nullopt;
     if (response.status != 200) raise_for(response, repo);
     json data = json::parse(response.body, nullptr, false);
@@ -191,6 +192,9 @@ PushResult GitHubClient::put_file(const std::string& owner, const std::string& n
     }
     if (data.contains("commit") && data["commit"].is_object()) {
         result.commit_sha = data["commit"].value("sha", "");
+    }
+    if (result.html_url.empty() || result.commit_sha.empty()) {
+        throw GitHubError("GitHub returned a malformed success response for " + repo);
     }
     result.updated = response.status == 200;
     return result;

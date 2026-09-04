@@ -4,7 +4,7 @@
 
 ![C++](https://img.shields.io/badge/C%2B%2B-20-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 
 No clone. No working tree. No `cd`. Type `lcpush` from wherever you happen to
 be, answer three prompts, and your solution is committed.
@@ -16,7 +16,7 @@ be, answer three prompts, and your solution is committed.
 Solving the problem was never the annoying part. The annoying part was
 everything after: find the solutions repo, `cd` into it, remember whether it's
 `0001-two-sum.py` or `1-two-sum.py`, paste, `git add`, write a commit message,
-push. Thirty seconds of ceremony per problem, every time — enough friction that
+push. Thirty seconds of ceremony per problem, every time - enough friction that
 I'd batch it up "for later" and then never do it.
 
 So `lcpush` does the ceremony. It keeps the whole LeetCode problem set cached
@@ -42,7 +42,7 @@ $ lcpush
   ? Solution source:  [Clipboard]  Editor  Stdin
   ✓ Read 24 lines from clipboard
 
-  ┌ Clipboard — 24 lines, 612 bytes, detected Python3
+  ┌ Clipboard - 24 lines, 612 bytes, detected Python3
   │ class Solution:
   │     def twoSum(self, nums: List[int], target: int) -> List[int]:
   │         seen = {}
@@ -117,19 +117,19 @@ lcpush config reset-token
 lcpush config path          # where config and cache live
 ```
 
-Config lives at `$XDG_CONFIG_HOME/lcpush/config.toml` (default
-`~/.config/lcpush/config.toml`, mode `0600`); the problem-set cache lives at
+Config lives at `$XDG_CONFIG_HOME/lcpush/config.toml` by default at
+`~/.config/lcpush/config.toml` with mode `0600`. The problem-set cache lives at
 `$XDG_CACHE_HOME/lcpush/problems.json`.
 
 Template variables: `{id}` `{padded_id}` `{title}` `{slug}` `{language}`
 `{ext}` `{difficulty}` `{filename}` `{path}` `{lines}`. Misspell one and it
-warns once and falls back to the built-in default — a typo in your config
+warns once and falls back to the built-in default - a typo in your config
 shouldn't take the tool down.
 
 
 ### Field note: LeetCode's pagination lies
 
-The GraphQL endpoint happily accepts `limit: 500` and returns `200 OK` — and
+The GraphQL endpoint happily accepts `limit: 500` and returns `200 OK` - and
 then gives you 100 results. If you paginate by advancing `skip` by the limit
 you *requested*, you silently skip 400 problems per page and end up with 803
 of the 4003 that exist, with no error anywhere to tell you. `lcpush` advances
@@ -153,10 +153,12 @@ pinned to that behaviour, because I'd rather not rediscover it.
 ## Development
 
 ```bash
-cmake -S . -B build -G Ninja
-cmake --build build
-ctest --test-dir build           # 200+ tests
+cmake --preset strict
+cmake --build --preset strict
+ctest --preset strict           # 200+ tests
 ```
+
+Use the `sanitizers` preset for AddressSanitizer and UndefinedBehaviorSanitizer.
 
 The prompt widgets are tested for real, driven through scripted key bytes
 rather than mocked out - so "typing `two su` filters to Two Sum" and
@@ -172,7 +174,7 @@ my mind:
 
 - An auto-generated `README.md` index table in the solutions repo
 - Grouping by difficulty or topic tag (the `path` config field is the seam)
-- `lcpush log` — local history of what's been pushed
+- `lcpush log` - local history of what's been pushed
 - Complexity/approach notes appended as a header comment
 - Multiple languages for one question in a single invocation
 

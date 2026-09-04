@@ -41,6 +41,9 @@ std::string base64_encode(std::string_view data);
 // Percent-encode a URL path like Python quote(path, safe="/").
 std::string url_quote_path(std::string_view path);
 
+// Percent-encode a URL query value with no reserved characters left unescaped.
+std::string url_quote_query(std::string_view value);
+
 // First `count` code points as a UTF-8 string, matching Python slicing.
 std::string codepoint_prefix(std::string_view text, size_t count);
 

@@ -129,7 +129,8 @@ std::optional<std::string> open_editor(const EditorOptions& options) {
 
     std::vector<std::string> command = editor_command();
     command.push_back(path);
-    if (!util::subprocess().run_interactive(command)) return std::nullopt;
+    auto exit_code = util::subprocess().run_interactive(command);
+    if (!exit_code || *exit_code != 0) return std::nullopt;
 
     std::ifstream in(path);
     if (!in.good()) return std::nullopt;
