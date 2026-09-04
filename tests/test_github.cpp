@@ -8,8 +8,8 @@
 #include <ctime>
 
 #include "helpers/fake_transport.hpp"
-#include "lcpush/errors.hpp"
-#include "lcpush/github.hpp"
+#include "lcpush/core/errors.hpp"
+#include "lcpush/github/client.hpp"
 
 using namespace lcpush;
 using lcpush::testing::json_response;

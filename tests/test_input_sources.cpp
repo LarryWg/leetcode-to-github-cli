@@ -5,8 +5,8 @@
 
 #include "helpers/fake_subprocess.hpp"
 #include "helpers/fixtures.hpp"
-#include "lcpush/clipboard.hpp"
-#include "lcpush/editor.hpp"
+#include "lcpush/platform/clipboard.hpp"
+#include "lcpush/platform/editor.hpp"
 
 using namespace lcpush;
 using lcpush::testing::EnvVar;

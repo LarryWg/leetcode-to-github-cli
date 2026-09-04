@@ -6,10 +6,10 @@
 
 #include <fstream>
 
-#include "lcpush/detect.hpp"
-#include "lcpush/plausibility.hpp"
-#include "lcpush/search.hpp"
-#include "lcpush/solution.hpp"
+#include "lcpush/domain/detect.hpp"
+#include "lcpush/domain/plausibility.hpp"
+#include "lcpush/leetcode/search.hpp"
+#include "lcpush/domain/solution.hpp"
 
 using namespace lcpush;
 using nlohmann::json;

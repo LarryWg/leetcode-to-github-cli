@@ -1,47 +1,24 @@
 # Core library holds every module except main so tests can link it directly.
 add_library(lcpush_core STATIC
-  errors.hpp
-  version.hpp
-  version.cpp
-  paths.hpp
-  paths.cpp
-  config.hpp
-  config.cpp
-  problems.hpp
-  detect.hpp
-  detect.cpp
-  solution.hpp
-  solution.cpp
-  plausibility.hpp
-  plausibility.cpp
-  render.hpp
-  render.cpp
-  ui.hpp
-  ui.cpp
-  search.hpp
-  search.cpp
+  # Errors and version info shared by every layer.
+  core/errors.hpp
+  core/version.hpp
+  core/version.cpp
+
+  # Generic helpers with no product knowledge.
   util/strings.hpp
   util/strings.cpp
   util/subprocess.hpp
   util/subprocess.cpp
-  keyring.hpp
-  keyring_common.cpp
-  keyring_macos.cpp
-  keyring_null.cpp
-  tokens.hpp
-  tokens.cpp
-  clipboard.hpp
-  clipboard.cpp
-  editor.hpp
-  editor.cpp
+  util/time.hpp
+  util/time.cpp
+
+  # HTTP transport seam and its libcurl implementation.
   http/transport.hpp
   http/curl_transport.hpp
   http/curl_transport.cpp
-  github.hpp
-  github.cpp
-  problems.cpp
-  util/time.hpp
-  util/time.cpp
+
+  # Low-level terminal: raw mode, key decoding, frame painting.
   term/terminal.hpp
   term/terminal.cpp
   term/raw_mode.hpp
@@ -50,18 +27,62 @@ add_library(lcpush_core STATIC
   term/keys.cpp
   term/render.hpp
   term/render.cpp
-  prompts.hpp
-  prompts.cpp
-  picker.hpp
-  picker.cpp
-  flow.hpp
-  flow.cpp
-  onboarding.hpp
-  onboarding.cpp
-  session.hpp
-  session.cpp
-  cli.hpp
-  cli.cpp
+
+  # OS integration: storage locations, clipboard, editor, keyring.
+  platform/paths.hpp
+  platform/paths.cpp
+  platform/clipboard.hpp
+  platform/clipboard.cpp
+  platform/editor.hpp
+  platform/editor.cpp
+  platform/keyring.hpp
+  platform/keyring_common.cpp
+  platform/keyring_macos.cpp
+  platform/keyring_null.cpp
+
+  # Config model and TOML persistence.
+  config/config.hpp
+  config/config.cpp
+
+  # Pure domain logic over solution content.
+  domain/detect.hpp
+  domain/detect.cpp
+  domain/solution.hpp
+  domain/solution.cpp
+  domain/plausibility.hpp
+  domain/plausibility.cpp
+  domain/render.hpp
+  domain/render.cpp
+
+  # LeetCode problem set: fetching, caching, fuzzy search.
+  leetcode/problems.hpp
+  leetcode/problems.cpp
+  leetcode/search.hpp
+  leetcode/search.cpp
+
+  # GitHub API client and token resolution.
+  github/client.hpp
+  github/client.cpp
+  github/tokens.hpp
+  github/tokens.cpp
+
+  # Interactive widgets and console output.
+  ui/console.hpp
+  ui/console.cpp
+  ui/prompts.hpp
+  ui/prompts.cpp
+  ui/picker.hpp
+  ui/picker.cpp
+
+  # Application flows wiring everything together.
+  app/flow.hpp
+  app/flow.cpp
+  app/onboarding.hpp
+  app/onboarding.cpp
+  app/session.hpp
+  app/session.cpp
+  app/cli.hpp
+  app/cli.cpp
 )
 
 target_include_directories(lcpush_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -71,6 +92,7 @@ target_link_libraries(lcpush_core PUBLIC
   tomlplusplus::tomlplusplus
   rapidfuzz::rapidfuzz
   CURL::libcurl
+  CLI11::CLI11
 )
 
 target_compile_definitions(lcpush_core PUBLIC LCPUSH_VERSION="${PROJECT_VERSION}")
@@ -81,8 +103,6 @@ if(APPLE)
     "-framework CoreFoundation"
   )
 endif()
-
-target_link_libraries(lcpush_core PUBLIC CLI11::CLI11)
 
 add_executable(lcpush main.cpp)
 target_link_libraries(lcpush PRIVATE lcpush_core)

@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/ui.hpp"
+#include "lcpush/ui/console.hpp"
 
 using namespace lcpush;
 using lcpush::testing::kPySolution;

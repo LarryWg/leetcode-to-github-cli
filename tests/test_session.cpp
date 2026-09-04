@@ -9,11 +9,11 @@
 
 #include "helpers/capture.hpp"
 #include "helpers/fixtures.hpp"
-#include "lcpush/config.hpp"
-#include "lcpush/errors.hpp"
-#include "lcpush/paths.hpp"
-#include "lcpush/problems.hpp"
-#include "lcpush/session.hpp"
+#include "lcpush/config/config.hpp"
+#include "lcpush/core/errors.hpp"
+#include "lcpush/platform/paths.hpp"
+#include "lcpush/leetcode/problems.hpp"
+#include "lcpush/app/session.hpp"
 
 using namespace lcpush;
 using lcpush::testing::CaptureStreams;

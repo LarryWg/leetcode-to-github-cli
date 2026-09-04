@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <vector>
 
-#include "lcpush/cli.hpp"
-#include "lcpush/flow.hpp"
+#include "lcpush/app/cli.hpp"
+#include "lcpush/app/flow.hpp"
 
 namespace {
 

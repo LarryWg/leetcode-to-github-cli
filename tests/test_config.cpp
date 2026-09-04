@@ -6,9 +6,9 @@
 #include <fstream>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/config.hpp"
-#include "lcpush/errors.hpp"
-#include "lcpush/paths.hpp"
+#include "lcpush/config/config.hpp"
+#include "lcpush/core/errors.hpp"
+#include "lcpush/platform/paths.hpp"
 
 using namespace lcpush;
 

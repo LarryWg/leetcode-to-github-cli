@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/detect.hpp"
-#include "lcpush/render.hpp"
+#include "lcpush/domain/detect.hpp"
+#include "lcpush/domain/render.hpp"
 
 using namespace lcpush;
 

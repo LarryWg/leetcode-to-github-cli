@@ -10,9 +10,9 @@
 
 #include "helpers/fake_transport.hpp"
 #include "helpers/fixtures.hpp"
-#include "lcpush/errors.hpp"
-#include "lcpush/paths.hpp"
-#include "lcpush/problems.hpp"
+#include "lcpush/core/errors.hpp"
+#include "lcpush/platform/paths.hpp"
+#include "lcpush/leetcode/problems.hpp"
 #include "lcpush/util/time.hpp"
 
 using namespace lcpush;

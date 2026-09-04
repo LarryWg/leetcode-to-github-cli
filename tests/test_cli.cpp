@@ -3,9 +3,9 @@
 
 #include "helpers/capture.hpp"
 #include "helpers/fixtures.hpp"
-#include "lcpush/cli.hpp"
-#include "lcpush/config.hpp"
-#include "lcpush/problems.hpp"
+#include "lcpush/app/cli.hpp"
+#include "lcpush/config/config.hpp"
+#include "lcpush/leetcode/problems.hpp"
 
 using namespace lcpush;
 using lcpush::testing::CaptureStreams;

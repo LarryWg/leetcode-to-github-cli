@@ -4,8 +4,8 @@
 
 #include "helpers/fake_subprocess.hpp"
 #include "helpers/fixtures.hpp"
-#include "lcpush/paths.hpp"
-#include "lcpush/tokens.hpp"
+#include "lcpush/platform/paths.hpp"
+#include "lcpush/github/tokens.hpp"
 
 using namespace lcpush;
 using lcpush::testing::EnvVar;
