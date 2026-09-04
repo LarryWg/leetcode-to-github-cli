@@ -4,7 +4,7 @@
 #include <sstream>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/paths.hpp"
+#include "lcpush/platform/paths.hpp"
 
 using namespace lcpush;
 using lcpush::testing::EnvVar;

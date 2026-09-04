@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <string>
 
-#include "lcpush/ui.hpp"
+#include "lcpush/ui/console.hpp"
 
 namespace lcpush::testing {
 

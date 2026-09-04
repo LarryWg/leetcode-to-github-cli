@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/plausibility.hpp"
+#include "lcpush/domain/plausibility.hpp"
 
 using namespace lcpush;
 using lcpush::testing::kCppSolution;

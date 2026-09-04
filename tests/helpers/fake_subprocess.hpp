@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "lcpush/keyring.hpp"
+#include "lcpush/platform/keyring.hpp"
 #include "lcpush/util/subprocess.hpp"
 
 namespace lcpush::testing {

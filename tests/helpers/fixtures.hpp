@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "lcpush/problems.hpp"
+#include "lcpush/leetcode/problems.hpp"
 
 namespace lcpush::testing {
 

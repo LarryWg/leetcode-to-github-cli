@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/search.hpp"
+#include "lcpush/leetcode/search.hpp"
 
 using namespace lcpush;
 

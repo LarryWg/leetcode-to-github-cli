@@ -2,7 +2,7 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/detect.hpp"
+#include "lcpush/domain/detect.hpp"
 
 using namespace lcpush;
 using lcpush::testing::kCppSolution;

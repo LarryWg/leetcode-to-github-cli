@@ -3,8 +3,8 @@
 #include <algorithm>
 
 #include "helpers/fixtures.hpp"
-#include "lcpush/detect.hpp"
-#include "lcpush/solution.hpp"
+#include "lcpush/domain/detect.hpp"
+#include "lcpush/domain/solution.hpp"
 
 using namespace lcpush;
 using lcpush::testing::kCppSolution;

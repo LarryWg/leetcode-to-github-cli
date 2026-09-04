@@ -4,10 +4,10 @@
 
 #include "helpers/fixtures.hpp"
 #include "helpers/scripted_terminal.hpp"
-#include "lcpush/errors.hpp"
-#include "lcpush/picker.hpp"
-#include "lcpush/prompts.hpp"
-#include "lcpush/search.hpp"
+#include "lcpush/core/errors.hpp"
+#include "lcpush/ui/picker.hpp"
+#include "lcpush/ui/prompts.hpp"
+#include "lcpush/leetcode/search.hpp"
 #include "lcpush/util/strings.hpp"
 
 using namespace lcpush;
